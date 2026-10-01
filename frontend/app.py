@@ -1,201 +1,114 @@
-import os
-import requests
 import streamlit as st
-from dotenv import load_dotenv
+from datetime import date
 
-
-# ============================================================
-# CONFIGURATION
-# ============================================================
-
-load_dotenv()
-
-BACKEND_URL = os.getenv(
-    "BACKEND_URL",
-    "http://127.0.0.1:8000"
-)
-
-GENERATE_URL = f"{BACKEND_URL}/generate"
-
+# -----------------------------
+# LegalEase - Simple Legal Document Generator
+# -----------------------------
 
 st.set_page_config(
     page_title="LegalEase",
     page_icon="⚖️",
-    layout="wide"
+    layout="centered"
 )
 
+st.title("⚖️ LegalEase")
+st.subheader("Simple Legal Document Generator")
 
-# ============================================================
-# SESSION STATE
-# ============================================================
+st.write("Fill in the details below to generate a basic legal document.")
 
-if "generated_document" not in st.session_state:
-    st.session_state.generated_document = ""
+# -----------------------------
+# User Details
+# -----------------------------
 
-if "editing" not in st.session_state:
-    st.session_state.editing = False
+name = st.text_input("Your Name")
 
+email = st.text_input("Email")
 
-# ============================================================
-# CUSTOM CSS
-# ============================================================
-
-st.markdown(
-    """
-    <style>
-
-    .main-title {
-        text-align: center;
-        font-size: 42px;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-
-    .subtitle {
-        text-align: center;
-        font-size: 18px;
-        margin-bottom: 30px;
-    }
-
-    .document-preview {
-        background-color: #111827;
-        color: #f9fafb;
-        padding: 25px;
-        border-radius: 12px;
-        border: 1px solid #374151;
-        min-height: 400px;
-        white-space: pre-wrap;
-        overflow-y: auto;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
+document_type = st.selectbox(
+    "Select Document Type",
+    [
+        "Rental Agreement",
+        "Affidavit",
+        "Authorization Letter",
+        "Legal Notice",
+        "General Agreement"
+    ]
 )
 
+other_party = st.text_input("Other Party Name")
 
-# ============================================================
-# HEADER
-# ============================================================
-
-st.markdown(
-    '<div class="main-title">⚖️ LegalEase</div>',
-    unsafe_allow_html=True
+details = st.text_area(
+    "Enter the details of the document",
+    height=180
 )
 
-st.markdown(
-    '<div class="subtitle">AI-Powered Legal Document Generator</div>',
-    unsafe_allow_html=True
+document_date = st.date_input(
+    "Document Date",
+    value=date.today()
 )
 
-st.divider()
+# -----------------------------
+# Generate Document
+# -----------------------------
+
+if st.button("Generate Document", type="primary"):
+
+    if not name:
+        st.error("Please enter your name.")
+        st.stop()
+
+    if not details:
+        st.error("Please enter the document details.")
+        st.stop()
+
+    document = f"""
+LEGAL DOCUMENT
+===============
+
+Document Type:
+{document_type}
+
+Date:
+{document_date}
+
+First Party:
+{name}
+
+Email:
+{email}
+
+Other Party:
+{other_party}
+
+DETAILS
+-------
+
+{details}
 
 
-# ============================================================
-# INPUT SECTION
-# ============================================================
+DECLARATION
+-----------
 
-st.subheader("📄 Create Your Legal Document")
+I, {name}, confirm that the information provided above
+is true and correct to the best of my knowledge.
 
-col1, col2 = st.columns(2)
+Signature:
 
-with col1:
+________________________
+{name}
+"""
 
-    document_type = st.text_input(
-        "Document Type",
-        placeholder="Example: NDA, Employment Contract, Lease Agreement"
+    st.success("Document generated successfully!")
+
+    st.text_area(
+        "Generated Document",
+        document,
+        height=400
     )
 
-    parties = st.text_area(
-        "Parties Involved",
-        placeholder=(
-            "Example:\n"
-            "Jane Doe (Service Provider)\n"
-            "TechNova Inc. (Client)"
-        ),
-        height=130
+    st.download_button(
+        label="Download Document",
+        data=document,
+        file_name="LegalEase_Document.txt",
+        mime="text/plain"
     )
-
-with col2:
-
-    dates = st.text_input(
-        "Effective Date",
-        placeholder="Example: April 10, 2025"
-    )
-
-    terms = st.text_area(
-        "Terms & Conditions",
-        placeholder=(
-            "Enter each term separated by semicolon (;)\n\n"
-            "Example:\n"
-            "Payment within 30 days; "
-            "Confidentiality must be maintained; "
-            "Either party may terminate with 15 days notice"
-        ),
-        height=130
-    )
-
-
-additional_instructions = st.text_area(
-    "Additional Instructions (Optional)",
-    placeholder="Add any additional requirements for the document...",
-    height=100
-)
-
-
-# ============================================================
-# GENERATE DOCUMENT
-# ============================================================
-
-if st.button(
-    "🚀 Generate Document",
-    use_container_width=True,
-    type="primary"
-):
-
-    if not document_type.strip():
-        st.error("Please enter the document type.")
-
-    elif not parties.strip():
-        st.error("Please enter the parties involved.")
-
-    elif not terms.strip():
-        st.error("Please enter the terms and conditions.")
-
-    elif not dates.strip():
-        st.error("Please enter the effective date.")
-
-    else:
-
-        request_data = {
-            "document_type": document_type,
-            "parties": parties,
-            "terms": terms,
-            "dates": dates,
-            "additional_instructions": additional_instructions
-        }
-
-        with st.spinner("Generating your legal document..."):
-
-            try:
-
-                response = requests.post(
-                    GENERATE_URL,
-                    json=request_data,
-                    timeout=120
-                )
-
-                if response.status_code == 200:
-
-                    data = response.json()
-
-                    st.session_state.generated_document = data.get(
-                        "content",
-                        ""
-                    )
-
-                    st.session_state.editing = False
-
-                    st.success(
-                        "Document generated successfully!"
-                    )
